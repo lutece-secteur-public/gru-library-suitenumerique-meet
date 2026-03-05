@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+	<properties>
+		<title>Library Meet</title>
+	</properties>
+	<body>
+		<section name="Library Meet">
+			<subsection name="Introduction">
+				<p>
+					Cette librairie int&#232;gre le service de visioconf&#233;rence La Suite Numérique Meet (Visio)
+					&#224; Lutece via l'interface <code>IVirtualMeetingProvider</code>
+					d&#233;finie par le module <code>module-appointment-virtualmeeting</code>.
+				</p>
+				<p>
+					Elle fournit les fonctionnalit&#233;s suivantes :
+				</p>
+				<ul>
+					<li>Authentification OAuth2 aupr&#232;s de l'API externe Meet</li>
+					<li>Cr&#233;ation de salles avec g&#233;n&#233;ration automatique de slugs</li>
+					<li>G&#233;n&#233;ration d'URL de r&#233;union &#224; partir d'un patron d'URL configurable et du slug de la salle</li>
+				</ul>
+				<p>
+					Contrairement aux fournisseurs bas&#233;s sur des jetons (ex. LiveKit),
+					Meet utilise une URL de salle unique partag&#233;e par tous les participants.
+					Les m&#233;thodes <code>generateParticipantToken()</code> et
+					<code>generateViewerToken()</code> retournent directement cette URL.
+				</p>
+			</subsection>
+			<subsection name="Configuration">
+				<p>
+					Configurez la librairie dans le fichier
+					<code>WEB-INF/conf/plugins/meet.properties</code> :
+				</p>
+				<table>
+					<tr>
+						<th>Propri&#233;t&#233;</th>
+						<th>Description</th>
+						<th>Valeur par d&#233;faut</th>
+					</tr>
+					<tr>
+						<td><code>meet.server.url</code></td>
+						<td>URL de base de l'API externe Meet</td>
+						<td><i>(obligatoire)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.clientId</code></td>
+						<td>Identifiant client OAuth2</td>
+						<td><i>(obligatoire)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.clientSecret</code></td>
+						<td>Secret client OAuth2</td>
+						<td><i>(obligatoire)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.scope</code></td>
+						<td>Adresse email de l'utilisateur &#224; d&#233;l&#233;guer</td>
+						<td><i>(obligatoire)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.meetingUrlPattern</code></td>
+						<td>
+							Patron d'URL de l'interface web Meet.
+							Le marqueur <code>{slug}</code> est remplac&#233; par
+							le slug de la salle &#224; l'ex&#233;cution.
+						</td>
+						<td><code>https://meet.example.com/{slug}</code></td>
+					</tr>
+				</table>
+			</subsection>
+			<subsection name="Utilisation">
+				<p>
+					Ajoutez la d&#233;pendance Maven dans le POM de votre site :
+				</p>
+				<source>
+&lt;dependency&gt;
+    &lt;groupId&gt;fr.paris.lutece.plugins&lt;/groupId&gt;
+    &lt;artifactId&gt;library-suitenumerique-meet&lt;/artifactId&gt;
+    &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
+    &lt;type&gt;lutece-plugin&lt;/type&gt;
+&lt;/dependency&gt;
+				</source>
+				<p>
+					La librairie est automatiquement d&#233;tect&#233;e en tant que
+					<code>IVirtualMeetingProvider</code> par le module
+					<code>module-appointment-virtualmeeting</code> via la d&#233;couverte
+					de beans Spring. Aucun c&#226;blage suppl&#233;mentaire n'est n&#233;cessaire.
+				</p>
+				<p>
+					Lorsque <code>VirtualMeetingService</code> appelle
+					<code>getParticipantMeetingUrl()</code> ou <code>getViewerMeetingUrl()</code>,
+					le fournisseur Meet s'appuie sur l'impl&#233;mentation par d&#233;faut de
+					l'interface qui d&#233;l&#232;gue &#224; <code>generateParticipantToken()</code>,
+					retournant l'URL de la salle construite &#224; partir du patron configur&#233; et du slug.
+				</p>
+			</subsection>
+		</section>
+	</body>
+</document>

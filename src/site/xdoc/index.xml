@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+	<properties>
+		<title>Library Meet</title>
+	</properties>
+	<body>
+		<section name="Library Meet">
+			<subsection name="Introduction">
+				<p>
+					This library integrates the Meet video-conferencing service
+					with Lutece through the <code>IVirtualMeetingProvider</code> interface
+					defined by the <code>module-appointment-virtualmeeting</code> module.
+				</p>
+				<p>
+					It provides the following features:
+				</p>
+				<ul>
+					<li>OAuth2 authentication against the Meet external API</li>
+					<li>Room creation with auto-generated slugs</li>
+					<li>Meeting URL generation from a configurable URL pattern and the room slug</li>
+				</ul>
+				<p>
+					Unlike token-based providers (e.g. LiveKit), Meet uses a single room URL
+					shared by all participants. The <code>generateParticipantToken()</code> and
+					<code>generateViewerToken()</code> methods return this room URL directly.
+				</p>
+			</subsection>
+			<subsection name="Configuration">
+				<p>
+					Configure the library in the file
+					<code>WEB-INF/conf/plugins/meet.properties</code>:
+				</p>
+				<table>
+					<tr>
+						<th>Property</th>
+						<th>Description</th>
+						<th>Default</th>
+					</tr>
+					<tr>
+						<td><code>meet.server.url</code></td>
+						<td>Base URL of the Meet external API</td>
+						<td><i>(required)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.clientId</code></td>
+						<td>OAuth2 client ID</td>
+						<td><i>(required)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.clientSecret</code></td>
+						<td>OAuth2 client secret</td>
+						<td><i>(required)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.scope</code></td>
+						<td>Email address of the user to delegate</td>
+						<td><i>(required)</i></td>
+					</tr>
+					<tr>
+						<td><code>meet.server.meetingUrlPattern</code></td>
+						<td>
+							URL pattern for the Meet web frontend.
+							The placeholder <code>{slug}</code> is replaced
+							with the room slug at runtime.
+						</td>
+						<td><code>https://meet.example.com/{slug}</code></td>
+					</tr>
+				</table>
+			</subsection>
+			<subsection name="Usage">
+				<p>
+					Add the Maven dependency to your site POM:
+				</p>
+				<source>
+&lt;dependency&gt;
+    &lt;groupId&gt;fr.paris.lutece.plugins&lt;/groupId&gt;
+    &lt;artifactId&gt;library-suitenumerique-meet&lt;/artifactId&gt;
+    &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
+    &lt;type&gt;lutece-plugin&lt;/type&gt;
+&lt;/dependency&gt;
+				</source>
+				<p>
+					The library is automatically discovered as an <code>IVirtualMeetingProvider</code>
+					by the <code>module-appointment-virtualmeeting</code> module through Spring bean detection.
+					No additional wiring is required.
+				</p>
+				<p>
+					When <code>VirtualMeetingService</code> calls <code>getParticipantMeetingUrl()</code>
+					or <code>getViewerMeetingUrl()</code>, the Meet provider relies on the default
+					interface implementation which delegates to <code>generateParticipantToken()</code>,
+					returning the room URL built from the configured pattern and slug.
+				</p>
+			</subsection>
+		</section>
+	</body>
+</document>
