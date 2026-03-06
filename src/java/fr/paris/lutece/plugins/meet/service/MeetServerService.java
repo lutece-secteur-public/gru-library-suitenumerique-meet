@@ -62,6 +62,13 @@ public class MeetServerService implements IVirtualMeetingProvider
     private String _strName;
     private boolean _bDefault;
 
+    // Configurable fields — when set, they take priority over AppPropertiesService
+    private String _strBaseUrl;
+    private String _strClientId;
+    private String _strClientSecret;
+    private String _strScope;
+    private String _strMeetingUrlPattern;
+
     private final ConcurrentHashMap<String, MeetRoom> _roomCache = new ConcurrentHashMap<>( );
     private final MeetApiClient _apiClient = new MeetApiClient( );
 
@@ -89,6 +96,60 @@ public class MeetServerService implements IVirtualMeetingProvider
         _bDefault = bDefault;
     }
 
+    // Configuration setters
+
+    public void setBaseUrl( String strBaseUrl )
+    {
+        _strBaseUrl = strBaseUrl;
+    }
+
+    public void setClientId( String strClientId )
+    {
+        _strClientId = strClientId;
+    }
+
+    public void setClientSecret( String strClientSecret )
+    {
+        _strClientSecret = strClientSecret;
+    }
+
+    public void setScope( String strScope )
+    {
+        _strScope = strScope;
+    }
+
+    public void setMeetingUrlPattern( String strMeetingUrlPattern )
+    {
+        _strMeetingUrlPattern = strMeetingUrlPattern;
+    }
+
+    // Configuration helpers — field value takes priority, AppPropertiesService is the fallback
+
+    private String getBaseUrl( )
+    {
+        return _strBaseUrl != null ? _strBaseUrl : AppPropertiesService.getProperty( PROPERTY_BASE_URL, "" );
+    }
+
+    private String getClientId( )
+    {
+        return _strClientId != null ? _strClientId : AppPropertiesService.getProperty( PROPERTY_CLIENT_ID );
+    }
+
+    private String getClientSecret( )
+    {
+        return _strClientSecret != null ? _strClientSecret : AppPropertiesService.getProperty( PROPERTY_CLIENT_SECRET );
+    }
+
+    private String getScope( )
+    {
+        return _strScope != null ? _strScope : AppPropertiesService.getProperty( PROPERTY_SCOPE );
+    }
+
+    private String getMeetingUrlPattern( )
+    {
+        return _strMeetingUrlPattern != null ? _strMeetingUrlPattern : AppPropertiesService.getProperty( PROPERTY_MEETING_URL_PATTERN, DEFAULT_MEETING_URL_PATTERN );
+    }
+
     // Room management
 
     /**
@@ -110,20 +171,14 @@ public class MeetServerService implements IVirtualMeetingProvider
             AppLogService.info( "Meet provider — maxParticipants ({}) is not supported by the Meet API and will be ignored", nMaxParticipants );
         }
 
-        String strBaseUrl = AppPropertiesService.getProperty( PROPERTY_BASE_URL, "" );
-        String strClientId = AppPropertiesService.getProperty( PROPERTY_CLIENT_ID );
-        String strClientSecret = AppPropertiesService.getProperty( PROPERTY_CLIENT_SECRET );
-        String strScope = AppPropertiesService.getProperty( PROPERTY_SCOPE );
-
-        MeetRoom room = _apiClient.createRoom( strBaseUrl, strClientId, strClientSecret, strScope );
+        MeetRoom room = _apiClient.createRoom( getBaseUrl( ), getClientId( ), getClientSecret( ), getScope( ) );
 
         if ( room != null )
         {
             // The Meet API does not return a URL — build it from the slug
             if ( room.getUrl( ) == null && room.getSlug( ) != null )
             {
-                String strPattern = AppPropertiesService.getProperty( PROPERTY_MEETING_URL_PATTERN, DEFAULT_MEETING_URL_PATTERN );
-                room.setUrl( strPattern.replace( PLACEHOLDER_SLUG, room.getSlug( ) ) );
+                room.setUrl( getMeetingUrlPattern( ).replace( PLACEHOLDER_SLUG, room.getSlug( ) ) );
             }
 
             _roomCache.put( strRoomName, room );
