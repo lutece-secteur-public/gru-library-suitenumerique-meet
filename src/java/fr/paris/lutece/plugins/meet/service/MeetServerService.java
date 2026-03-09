@@ -74,6 +74,12 @@ public class MeetServerService implements IVirtualMeetingProvider
 
     // IVirtualMeetingProvider — identity
 
+    public MeetServerService( String providerName, String isDefault )
+    {
+        _strName = providerName;
+        _bDefault = isDefault.isEmpty() ? false : Boolean.parseBoolean( "isDefault" );
+    }
+
     @Override
     public String getName( )
     {
