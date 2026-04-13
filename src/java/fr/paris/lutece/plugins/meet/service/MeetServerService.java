@@ -33,7 +33,7 @@
  */
 package fr.paris.lutece.plugins.meet.service;
 
-import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import fr.paris.lutece.plugins.appointment.modules.virtualmeeting.provider.IVirtualMeetingProvider;
@@ -161,21 +161,14 @@ public class MeetServerService implements IVirtualMeetingProvider
     /**
      * {@inheritDoc}
      * <p>
-     * The Meet API auto-generates room slugs; the {@code strRoomName} parameter is used as a local cache key only. The {@code nEmptyTimeoutSeconds} and
-     * {@code nMaxParticipants} parameters are not supported by the Meet API and will be ignored.
+     * The Meet API auto-generates room slugs; the {@code roomName} parameter is used as a local cache key only. Parameters {@code emptyTimeout} and
+     * {@code maxParticipants} are not supported by the Meet API and are ignored if present.
      * </p>
      */
     @Override
-    public boolean createRoom( String strRoomName, int nEmptyTimeoutSeconds, int nMaxParticipants )
+    public boolean createRoom( Map<String, Object> mapParameters )
     {
-        if ( nEmptyTimeoutSeconds > 0 )
-        {
-            AppLogService.info( "Meet provider — emptyTimeout ({}) is not supported by the Meet API and will be ignored", nEmptyTimeoutSeconds );
-        }
-        if ( nMaxParticipants > 0 )
-        {
-            AppLogService.info( "Meet provider — maxParticipants ({}) is not supported by the Meet API and will be ignored", nMaxParticipants );
-        }
+        String strRoomName = (String) mapParameters.get( PARAM_ROOM_NAME );
 
         MeetRoom room = _apiClient.createRoom( getBaseUrl( ), getClientId( ), getClientSecret( ), getScope( ) );
 
@@ -204,8 +197,10 @@ public class MeetServerService implements IVirtualMeetingProvider
      * </p>
      */
     @Override
-    public boolean deleteRoom( String strRoomName )
+    public boolean deleteRoom( Map<String, Object> mapParameters )
     {
+        String strRoomName = (String) mapParameters.get( PARAM_ROOM_NAME );
+
         AppLogService.info( "Meet provider — deleteRoom('{}') called but the Meet API does not yet support room deletion. " + "Removing from local cache only.",
                 strRoomName );
         _roomCache.remove( strRoomName );
@@ -217,24 +212,20 @@ public class MeetServerService implements IVirtualMeetingProvider
     /**
      * {@inheritDoc}
      * <p>
-     * The Meet API does not issue per-participant tokens. This method returns the room URL, which serves as the access point for all participants. The
-     * {@code notBefore} parameter is not supported and will be ignored.
+     * The Meet API does not issue per-participant tokens. This method returns the room URL, which serves as the access point for all participants. Parameters
+     * {@code identity}, {@code displayName}, and {@code notBefore} are ignored if present.
      * </p>
      */
     @Override
-    public String generateParticipantToken( String strRoomName, String strIdentity, String strName, Date notBefore )
+    public String generateParticipantToken( Map<String, Object> mapParameters )
     {
+        String strRoomName = (String) mapParameters.get( PARAM_ROOM_NAME );
         MeetRoom room = _roomCache.get( strRoomName );
 
         if ( room == null )
         {
             AppLogService.error( "Meet provider — no room found in cache for name '{}'. Was createRoom() called first?", strRoomName );
             return null;
-        }
-
-        if ( notBefore != null )
-        {
-            AppLogService.info( "Meet provider — notBefore parameter is not supported by Meet (room URL is always immediately valid)" );
         }
 
         return room.getUrl( );
@@ -244,12 +235,12 @@ public class MeetServerService implements IVirtualMeetingProvider
      * {@inheritDoc}
      * <p>
      * The Meet API does not distinguish between participant and viewer access levels. This method delegates to
-     * {@link #generateParticipantToken(String, String, String, Date)}.
+     * {@link #generateParticipantToken(Map)}.
      * </p>
      */
     @Override
-    public String generateViewerToken( String strRoomName, String strIdentity, String strName, Date notBefore )
+    public String generateViewerToken( Map<String, Object> mapParameters )
     {
-        return generateParticipantToken( strRoomName, strIdentity, strName, notBefore );
+        return generateParticipantToken( mapParameters );
     }
 }
