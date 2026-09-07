@@ -66,6 +66,16 @@
 						</td>
 						<td><code>https://meet.example.com/{slug}</code></td>
 					</tr>
+					<tr>
+						<td><code>meet.server.accessLevel</code></td>
+						<td>
+							Niveau d'acc&#232;s appliqu&#233; par d&#233;faut aux salles cr&#233;&#233;es :
+							<code>public</code>, <code>trusted</code> ou <code>restricted</code>.
+							Surchargeable par t&#233;l&#233;proc&#233;dure dans la configuration de la
+							t&#226;che de workflow &#171;&#160;Cr&#233;er une visioconf&#233;rence&#160;&#187;.
+						</td>
+						<td><i>(vide &#8212; d&#233;faut du serveur Meet&#160;: <code>trusted</code>)</i></td>
+					</tr>
 				</table>
 			</subsection>
 			<subsection name="Utilisation">

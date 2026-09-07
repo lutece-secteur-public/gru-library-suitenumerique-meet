@@ -65,6 +65,16 @@
 						</td>
 						<td><code>https://meet.example.com/{slug}</code></td>
 					</tr>
+					<tr>
+						<td><code>meet.server.accessLevel</code></td>
+						<td>
+							Default access level applied to created rooms:
+							<code>public</code>, <code>trusted</code> or <code>restricted</code>.
+							Can be overridden per procedure in the configuration of the
+							"Create Virtual Meeting" workflow task.
+						</td>
+						<td><i>(empty &#8212; Meet server default: <code>trusted</code>)</i></td>
+					</tr>
 				</table>
 			</subsection>
 			<subsection name="Usage">

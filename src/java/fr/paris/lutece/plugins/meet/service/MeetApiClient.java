@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fr.paris.lutece.plugins.meet.business.MeetRoom;
+import fr.paris.lutece.plugins.meet.business.MeetRoomRequest;
 import fr.paris.lutece.plugins.meet.business.MeetTokenResponse;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.util.httpaccess.HttpAccess;
@@ -140,6 +141,26 @@ public class MeetApiClient
      */
     public MeetRoom createRoom( String strBaseUrl, String strClientId, String strClientSecret, String strScope )
     {
+        return createRoom( strBaseUrl, strClientId, strClientSecret, strScope, null );
+    }
+
+    /**
+     * Create a new room via the Meet API, with an explicit request body.
+     *
+     * @param strBaseUrl
+     *            the Meet API base URL
+     * @param strClientId
+     *            the OAuth2 client ID
+     * @param strClientSecret
+     *            the OAuth2 client secret
+     * @param strScope
+     *            the user email to delegate
+     * @param request
+     *            the room options; {@code null} or an unset request posts an empty body, letting the Meet server apply its defaults
+     * @return the created {@link MeetRoom}, or {@code null} on failure
+     */
+    public MeetRoom createRoom( String strBaseUrl, String strClientId, String strClientSecret, String strScope, MeetRoomRequest request )
+    {
         String strToken = getAccessToken( strBaseUrl, strClientId, strClientSecret, strScope );
 
         if ( strToken == null )
@@ -158,7 +179,9 @@ public class MeetApiClient
 
             Map<String, String> responseHeaders = new HashMap<>( );
 
-            String strResponse = httpAccess.doPostJSON( strBaseUrl + PATH_ROOMS, EMPTY_JSON_BODY, headers, responseHeaders );
+            String strJsonBody = ( request == null ) ? EMPTY_JSON_BODY : _mapper.writeValueAsString( request );
+
+            String strResponse = httpAccess.doPostJSON( strBaseUrl + PATH_ROOMS, strJsonBody, headers, responseHeaders );
 
             return _mapper.readValue( strResponse, MeetRoom.class );
         }

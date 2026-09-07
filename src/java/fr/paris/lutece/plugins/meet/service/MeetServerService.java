@@ -33,11 +33,16 @@
  */
 package fr.paris.lutece.plugins.meet.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
+
 import fr.paris.lutece.plugins.appointment.modules.virtualmeeting.provider.IVirtualMeetingProvider;
 import fr.paris.lutece.plugins.meet.business.MeetRoom;
+import fr.paris.lutece.plugins.meet.business.MeetRoomRequest;
+import fr.paris.lutece.plugins.meet.business.RoomAccessLevel;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 
@@ -55,8 +60,12 @@ public class MeetServerService implements IVirtualMeetingProvider
     private static final String PROPERTY_CLIENT_SECRET = "meet.server.clientSecret";
     private static final String PROPERTY_SCOPE = "meet.server.scope";
     private static final String PROPERTY_MEETING_URL_PATTERN = "meet.server.meetingUrlPattern";
+    private static final String PROPERTY_ACCESS_LEVEL = "meet.server.accessLevel";
 
     private static final String DEFAULT_MEETING_URL_PATTERN = "https://meet.example.com/{slug}";
+
+    /** Access level the Meet server applies when the field is omitted, as documented in its {@code openapi.yaml}. Informative only — never sent. */
+    private static final RoomAccessLevel SERVER_DEFAULT_ACCESS_LEVEL = RoomAccessLevel.TRUSTED;
     private static final String PLACEHOLDER_SLUG = "{slug}";
 
     private String _strName;
@@ -68,6 +77,7 @@ public class MeetServerService implements IVirtualMeetingProvider
     private String _strClientSecret;
     private String _strScope;
     private String _strMeetingUrlPattern;
+    private String _strAccessLevel;
 
     private final ConcurrentHashMap<String, MeetRoom> _roomCache = new ConcurrentHashMap<>( );
     private final MeetApiClient _apiClient = new MeetApiClient( );
@@ -129,6 +139,11 @@ public class MeetServerService implements IVirtualMeetingProvider
         _strMeetingUrlPattern = strMeetingUrlPattern;
     }
 
+    public void setAccessLevel( String strAccessLevel )
+    {
+        _strAccessLevel = strAccessLevel;
+    }
+
     // Configuration helpers — field value takes priority, AppPropertiesService is the fallback
 
     private String getBaseUrl( )
@@ -156,6 +171,38 @@ public class MeetServerService implements IVirtualMeetingProvider
         return _strMeetingUrlPattern != null ? _strMeetingUrlPattern : AppPropertiesService.getProperty( PROPERTY_MEETING_URL_PATTERN, DEFAULT_MEETING_URL_PATTERN );
     }
 
+    /**
+     * The site-wide default access level. Empty or {@code null} means "let the Meet server decide".
+     */
+    private String getAccessLevel( )
+    {
+        return _strAccessLevel != null ? _strAccessLevel : AppPropertiesService.getProperty( PROPERTY_ACCESS_LEVEL );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<String> getSupportedAccessLevels( )
+    {
+        return RoomAccessLevel.getValues( );
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Resolves exactly like {@link #createRoom}: the valid site-wide default if one is configured, otherwise the documented Meet server default. An invalid
+     * configured value therefore reports the server default, which is what the server will actually apply.
+     * </p>
+     */
+    @Override
+    public String getDefaultAccessLevel( )
+    {
+        RoomAccessLevel level = RoomAccessLevel.fromValue( getAccessLevel( ) );
+
+        return ( level != null ? level : SERVER_DEFAULT_ACCESS_LEVEL ).getValue( );
+    }
+
     // Room management
 
     /**
@@ -164,13 +211,19 @@ public class MeetServerService implements IVirtualMeetingProvider
      * The Meet API auto-generates room slugs; the {@code roomName} parameter is used as a local cache key only. Parameters {@code emptyTimeout} and
      * {@code maxParticipants} are not supported by the Meet API and are ignored if present.
      * </p>
+     * <p>
+     * {@code accessLevel} is resolved in three steps: the value passed in {@code mapParameters}, else the site-wide default
+     * ({@code meet.server.accessLevel} or the injected field), else nothing — in which case the field is omitted from the request body and the Meet server
+     * applies its own secure default.
+     * </p>
      */
     @Override
     public boolean createRoom( Map<String, Object> mapParameters )
     {
         String strRoomName = (String) mapParameters.get( PARAM_ROOM_NAME );
 
-        MeetRoom room = _apiClient.createRoom( getBaseUrl( ), getClientId( ), getClientSecret( ), getScope( ) );
+        MeetRoom room = _apiClient.createRoom( getBaseUrl( ), getClientId( ), getClientSecret( ), getScope( ),
+                buildRoomRequest( (String) mapParameters.get( PARAM_ACCESS_LEVEL ), strRoomName ) );
 
         if ( room != null )
         {
@@ -181,13 +234,49 @@ public class MeetServerService implements IVirtualMeetingProvider
             }
 
             _roomCache.put( strRoomName, room );
-            AppLogService.info( "Meet provider — room '{}' created (Meet ID: {}, slug: {}, URL: {})", strRoomName, room.getId( ), room.getSlug( ),
-                    room.getUrl( ) );
+            AppLogService.info( "Meet provider — room '{}' created (Meet ID: {}, slug: {}, access level: {}, URL: {})", strRoomName, room.getId( ),
+                    room.getSlug( ), room.getAccessLevel( ), room.getUrl( ) );
             return true;
         }
 
         AppLogService.error( "Meet provider — failed to create room '{}'", strRoomName );
         return false;
+    }
+
+    /**
+     * Build the room creation body, resolving the access level from the per-call parameter then the site-wide default.
+     *
+     * <p>
+     * An unrecognised value is logged and dropped rather than forwarded: the Meet API would reject the request, so falling back to the server default — itself
+     * documented as a secure default — keeps room creation working.
+     * </p>
+     *
+     * @param strRequestedAccessLevel
+     *            the per-call access level, may be {@code null} or empty
+     * @param strRoomName
+     *            the room name, for logging only
+     * @return the request body, never {@code null}
+     */
+    private MeetRoomRequest buildRoomRequest( String strRequestedAccessLevel, String strRoomName )
+    {
+        MeetRoomRequest request = new MeetRoomRequest( );
+
+        String strAccessLevel = StringUtils.isNotEmpty( strRequestedAccessLevel ) ? strRequestedAccessLevel : getAccessLevel( );
+
+        if ( StringUtils.isNotEmpty( strAccessLevel ) )
+        {
+            RoomAccessLevel accessLevel = RoomAccessLevel.fromValue( strAccessLevel );
+
+            if ( accessLevel == null )
+            {
+                AppLogService.error( "Meet provider — unknown access level '{}' for room '{}', falling back to the Meet server default. Expected one of {}",
+                        strAccessLevel, strRoomName, RoomAccessLevel.getValues( ) );
+            }
+
+            request.setAccessLevel( accessLevel );
+        }
+
+        return request;
     }
 
     /**
