@@ -11,13 +11,13 @@
     <groupId>fr.paris.lutece.plugins</groupId>
     <artifactId>library-suitenumerique-meet</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <name>Meet API integration for LUTECE</name>
     <scm>
         <connection>scm:git:https://github.com/lutece-secteur-public/gru-library-suitenumerique-meet.git</connection>
         <developerConnection>scm:git:https://github.com/lutece-secteur-public/gru-library-suitenumerique-meet.git</developerConnection>
         <url>https://github.com/lutece-secteur-public/gru-library-suitenumerique-meet.git</url>
-      <tag>library-suitenumerique-meet-1.0.0</tag>
+      <tag>HEAD</tag>
   </scm>
     <repositories>
         <repository>
