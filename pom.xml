@@ -13,7 +13,11 @@
     <packaging>jar</packaging>
     <version>1.0.0-SNAPSHOT</version>
     <name>Meet API integration for LUTECE</name>
-
+    <scm>
+        <connection>scm:git:https://github.com/lutece-secteur-public/gru-library-suitenumerique-meet.git</connection>
+        <developerConnection>scm:git:https://github.com/lutece-secteur-public/gru-library-suitenumerique-meet.git</developerConnection>
+        <url>https://github.com/lutece-secteur-public/gru-library-suitenumerique-meet.git</url>
+    </scm>
     <repositories>
         <repository>
             <id>lutece</id>
